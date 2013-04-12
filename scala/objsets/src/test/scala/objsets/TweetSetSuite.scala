@@ -16,8 +16,20 @@ class TweetSetSuite extends FunSuite {
     val set4c = set3.incl(c)
     val set4d = set3.incl(d)
     val set5 = set4c.incl(d)
+    val allTweets = TweetReader.allTweets
   }
 
+  test("filter by 321 retweets") {
+    new TestSets {
+      assert(size(allTweets.filter((elem: Tweet) => elem.retweets==321)) === 1)
+    }
+  }
+   
+  test("union filter by 321 and 205 retweets") {
+    new TestSets {
+      assert(size(allTweets.filter((elem: Tweet) => elem.retweets==321) union allTweets.filter((elem: Tweet) => elem.retweets==205) ) === 2)
+    }
+  }
   def asSet(tweets: TweetSet): Set[Tweet] = {
     var res = Set[Tweet]()
     tweets.foreach(res += _)
@@ -32,6 +44,13 @@ class TweetSetSuite extends FunSuite {
     }
   }
 
+  test("trending: google and applet tweets") {
+    new TestSets {
+      val trends = GoogleVsApple.trending
+      assert(!trends.isEmpty)
+    }
+  }
+  
   test("filter: a on set5") {
     new TestSets {
       assert(size(set5.filter(tw => tw.user == "a")) === 1)

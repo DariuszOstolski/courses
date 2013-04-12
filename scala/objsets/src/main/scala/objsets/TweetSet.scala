@@ -56,12 +56,15 @@ abstract class TweetSet {
    * and be implemented in the subclasses?
    */
    def union(that: TweetSet): TweetSet = ???
-     
+   /**
+    * 
+    */
+   def isEmpty: Boolean 
 
+   def max(f: Tweet): Tweet
   /**
    * Returns the tweet from this set which has the smallest retweet count.
    *
-   * Calling `mostRetweeted` on an empty set should throw an exception of
    * type `java.util.NoSuchElementException`.
    *
    * Question: Should we implment this method here, or should it remain abstract
@@ -111,7 +114,7 @@ abstract class TweetSet {
 
 class Empty extends TweetSet {
 
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = this
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = acc
   /**
    * Returns a new `TweetSet` that is the union of `TweetSet`s `this` and `that`.
    *
@@ -146,25 +149,31 @@ class Empty extends TweetSet {
    * Hint: the method `remove` on TweetSet will be very useful.
    */
   override def descendingByRetweet: TweetList = Nil
+  
+  override def isEmpty: Boolean = true
 
+  override def max(f: Tweet): Tweet = f
 }
 
 class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
 
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = {    
+  override def isEmpty: Boolean = false
+  
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = {   
     if ( p(elem) ) {
-      acc.incl(elem).union(left.filterAcc(p, acc)).union(right.filterAcc(p, acc))
+      left.filterAcc(p, right.filterAcc(p, acc.incl(elem)))      
     }
-    else {
-      left.filterAcc(p, acc).union(right.filterAcc(p, acc))
-    }        
+    else{
+      left.filterAcc(p, right.filterAcc(p, acc))
+    }
+    
   }
 		  
   /**
    * Returns a new `TweetSet` that is the union of `TweetSet`s `this` and `that`.
    */
   override def union(that: TweetSet): TweetSet = {
-    ((left union right) union that) incl elem
+		that.filterAcc((p: Tweet) => true, this)		    
   }
   /**
    * The following methods are already implemented
@@ -186,49 +195,32 @@ class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
     else if (elem.text < tw.text) new NonEmpty(elem, left, right.remove(tw))
     else left.union(right)
 
+  
   def foreach(f: Tweet => Unit): Unit = {
     f(elem)
     left.foreach(f)
     right.foreach(f)
   }
   
+  def max(f: Tweet): Tweet =
+  {
+	  if(elem.retweets<f.retweets)
+	  {
+	    val b = left.max(elem)
+	    right.max(b)
+	  }
+	  else {
+		 val b = left.max(f)
+		 right.max(b)
+	  }
+	  
+  }
   /**
    * Returns the tweet from this set which has the smallest retweet count.
    *
    */
   override def mostRetweeted: Tweet = {
-    	
-    	if(right.isInstanceOf[Empty] && left.isInstanceOf[Empty])
-    	{
-    	  return elem
-    	}
-    	else if(right.isInstanceOf[Empty])
-    	{
-    	  if(elem.retweets<left.mostRetweeted.retweets)
-    	    return elem
-    	  else
-    	    return left.mostRetweeted
-    	}
-    	else if(left.isInstanceOf[Empty])
-    	{
-    	    if(elem.retweets<right.mostRetweeted.retweets)
-    	    return elem
-    	  else
-    	    return right.mostRetweeted
-    	}
-    	else if(elem.retweets<right.mostRetweeted.retweets && elem.retweets<left.mostRetweeted.retweets)
-    	{
-    	  return elem
-    	}
-    	else if(right.mostRetweeted.retweets<left.mostRetweeted.retweets)
-    	{
-    	  return right.mostRetweeted
-    	}
-    	else
-    	{
-    	  return left.mostRetweeted
-    	}
-    	
+    	max(elem)    	  	    
   }
 
   /**
@@ -240,10 +232,10 @@ class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
    */
   override def descendingByRetweet: TweetList = {
     def descendingByRetweetAcc(acc: TweetList, xs: TweetSet): TweetList = {
-      if(xs.isInstanceOf[Empty])
-        return acc
+      if(xs.isEmpty)
+        acc
       else
-        return descendingByRetweetAcc(new Cons(xs.mostRetweeted, acc), xs.remove(xs.mostRetweeted))
+        descendingByRetweetAcc(new Cons(xs.mostRetweeted, acc), xs.remove(xs.mostRetweeted))
     }
     descendingByRetweetAcc(new Cons(this.mostRetweeted, Nil), remove(mostRetweeted))
   }
@@ -280,9 +272,9 @@ object GoogleVsApple {
   def filterHelper(elem: Tweet, words: List[String]) : Boolean =
   {
 	  if(words.isEmpty)
-		  return false
+		  false
       else if(elem.text.contains(words.head))
-    	  return true
+    	  true
       else
         filterHelper(elem, words.tail)
   }
@@ -305,5 +297,5 @@ object GoogleVsApple {
 
 object Main extends App {
   // Print the trending tweets
-  GoogleVsApple.trending foreach println
+  GoogleVsApple.trending foreach  (t => println(t))
 }
