@@ -95,7 +95,7 @@ class Rat:
         >>> str(rat)
         P at (4, 3) ate 0 sprouts.
         """
-        return '%s at (%d, %d) ate  %d sprouts.'%(self.symbol, self.row, self.col, self.num_sprouts_eaten)
+        return '%s at (%d, %d) ate %d sprouts.'%(self.symbol, self.row, self.col, self.num_sprouts_eaten)
     
 class Maze:
     """ A 2D maze. """
@@ -139,29 +139,26 @@ class Maze:
         Returns character at given row and col
         
         """
-        return self.maze[row][col]
+        character = self.maze[row][col]
+        if self.__check_rat_position(self.rat_1, row, col):
+            character = self.rat_1.symbol
+        elif self.__check_rat_position(self.rat_2, row, col):
+            character = self.rat_2.symbol
+        return character
 
     def __get_row_after_move(self, rat, vdirection):
         """ (Maze, Rat, int) -> int
 
         Returns new row after move to given direction
         """
-        if vdirection==UP:
-            return rat.row-1
-        if vdirection==DOWN:
-            return rat.row+1
-        return rat.row
+        return rat.row+vdirection
 
     def __get_col_after_move(self, rat, hdirection):
         """ (Maze, Rat, int) -> int
 
         Returns new col after move to given direction
-        """
-        if hdirection==LEFT:
-            return rat.col-1
-        if hdirection==RIGHT:
-            return rat.col+1
-        return rat.col
+        """        
+        return rat.col+hdirection
         
     def move(self, rat, vdirection, hdirection):
         """ (Maze, Rat, int, int) -> bool
@@ -185,9 +182,9 @@ class Maze:
             rat.eat_sprout()            
             self.num_sprouts_left -= 1
             
-        rat.col = col
-        rat.row = row
+        rat.set_location(row, col)
         return True
+    
     def __check_rat_position(self, rat, row, col):
         """ (Maze, Rat, int, int) -> bool
 
