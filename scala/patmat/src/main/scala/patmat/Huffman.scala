@@ -75,7 +75,8 @@ object Huffman {
    *   }
    */
   def times(chars: List[Char]): List[(Char, Int)] = {
-    chars.groupBy((elem: Char) => elem).mapValues((k: List[Char]) => k.length).toList
+    def compare(elem1: (Char, Int), elem2: (Char, Int)) = (elem1._2 < elem2._2)
+    chars.groupBy((elem: Char) => elem).mapValues((k: List[Char]) => k.length).toList.sortWith(compare)
   }
 
   /**
@@ -108,36 +109,20 @@ object Huffman {
    * unchanged.
    */
   def combine(trees: List[CodeTree]): List[CodeTree] = {
-    def forkFactory(elem1: CodeTree, elem2: CodeTree): CodeTree = {
-      val l1 = elem1 match {
-        case Fork(l, r, cs, w) => cs
-        case Leaf(c, w) => List(c)
+   
+    def getTuple(elem: CodeTree): (List[Char], Int) =  elem match {
+        case Fork(l, r, cs, w) => (cs, w)
+        case Leaf(c, w) => (List(c), w)
       }
-      val l2 = elem2 match {
-        case Fork(l, r, cs, w) => cs
-        case Leaf(c, w) => List(c)
-      }
-      val w1 = elem1 match {
-        case Fork(l, r, cs, w) => w
-        case Leaf(c, w) => w
-      }
-      val w2 = elem2 match {
-        case Fork(l, r, cs, w) => w
-        case Leaf(c, w) => w
-      }
-      Fork(elem1, elem2, l1 ++ l2, w1 + w2)
+     
+    def forkFactory(elem1: CodeTree, elem2: CodeTree): CodeTree = {     
+      val l1 = getTuple(elem1)
+      val l2 = getTuple(elem2)
+      Fork(elem1, elem2, l1._1 ++ l2._1, l1._2 + l2._2)
     }
 
     def compare(elem1: CodeTree, elem2: CodeTree): Boolean = {
-      val w1 = elem1 match {
-        case Fork(l, r, cs, w) => w
-        case Leaf(c, w) => w
-      }
-      val w2 = elem1 match {
-        case Fork(l, r, cs, w) => w
-        case Leaf(c, w) => w
-      }
-      w1 < w2
+      getTuple(elem1)._2 < getTuple(elem2)._2
     }
     if (trees.length > 1) {
       (List(forkFactory(trees.head, trees.tail.head)) ++ trees.tail.tail).sortWith(compare)
@@ -212,7 +197,7 @@ object Huffman {
         }
       }
     }
-    decHelper(tree, bits, List())    
+    decHelper(tree, bits, List())
   }
 
   /**
@@ -243,7 +228,7 @@ object Huffman {
 
     def contains(tree: CodeTree, c: Char): Boolean = {
       tree match {
-        case Fork(l, r, cs, w) => cs.contains(c)         
+        case Fork(l, r, cs, w) => cs.contains(c)
         case Leaf(char, w) => c == char
       }
     }
@@ -280,7 +265,15 @@ object Huffman {
    * This function returns the bit sequence that represents the character `char` in
    * the code table `table`.
    */
-  def codeBits(table: CodeTable)(char: Char): List[Bit] = ???
+  def codeBits(table: CodeTable)(char: Char): List[Bit] = {
+    if (table.isEmpty) {
+      Nil
+    } else if (char == table.head._1) {
+      table.head._2
+    } else {
+      codeBits(table.tail)(char)
+    }
+  }
 
   /**
    * Given a code tree, create a code table which contains, for every character in the
@@ -290,14 +283,27 @@ object Huffman {
    * a valid code tree that can be represented as a code table. Using the code tables of the
    * sub-trees, think of how to build the code table for the entire tree.
    */
-  def convert(tree: CodeTree): CodeTable = ???
+  def convert(tree: CodeTree): CodeTable = {
+    def traverseTree(stree: CodeTree, acc: CodeTable, path: List[Bit]): CodeTable = {
+       stree match {
+        case Fork(l, r, cs, w) => {
+          acc ++ traverseTree(l, acc, path++List(0)) ++ traverseTree(r, acc, path++List(1))
+        }
+        case Leaf(c, w) => {
+          val elem = (c, path)
+          List(elem) ++ acc
+        }
+      }
+    }
+    traverseTree(tree, List(), List())
+  }
 
   /**
    * This function takes two code tables and merges them into one. Depending on how you
    * use it in the `convert` method above, this merge method might also do some transformations
    * on the two parameter code tables.
    */
-  def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = ???
+  def mergeCodeTables(a: CodeTable, b: CodeTable): CodeTable = a++b
 
   /**
    * This function encodes `text` according to the code tree `tree`.
@@ -305,5 +311,14 @@ object Huffman {
    * To speed up the encoding process, it first converts the code tree to a code table
    * and then uses it to perform the actual encoding.
    */
-  def quickEncode(tree: CodeTree)(text: List[Char]): List[Bit] = ???
+  def quickEncode(tree: CodeTree)(text: List[Char]): List[Bit] = {
+    
+    def encode(codes: Map[Char, List[Bit]], text: List[Char]): List[Bit] = {
+      if(text.isEmpty)
+        List()
+      else
+        codes(text.head) ++ encode(codes, text.tail)
+    }
+    encode(convert(tree).toMap, text)
+  }
 }
