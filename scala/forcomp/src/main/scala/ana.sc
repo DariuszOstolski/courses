@@ -1,5 +1,6 @@
 object ana {
 
+
   import forcomp.Anagrams
   println("Welcome to the Scala worksheet")       //> Welcome to the Scala worksheet
   val s: String = "Test"                          //> s  : String = Test
@@ -35,6 +36,7 @@ object ana {
     case Nil => List()
     case y :: ys => wordOccurrences(y) ++ sentenceOccurrences(ys)
   }                                               //> sentenceOccurrences: (s: ana.Sentence)ana.Occurrences
+
   //sentenceOccurrences(sentence)
   //lazy val dictionaryByOccurrences: Map[Occurrences, List[Word]] = {
 
