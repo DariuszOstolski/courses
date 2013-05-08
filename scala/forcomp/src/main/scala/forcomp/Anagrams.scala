@@ -73,7 +73,6 @@ object Anagrams {
 
   /** Returns all the anagrams of a given word. */
   def wordAnagrams(word: Word): List[Word] = dictionaryByOccurrences(wordOccurrences(word))
-  
 
   /**
    * Returns the list of all subsets of the occurrence list.
@@ -98,7 +97,47 @@ object Anagrams {
    *  Note that the order of the occurrence list subsets does not matter -- the subsets
    *  in the example above could have been displayed in some other order.
    */
-  def combinations(occurrences: Occurrences): List[Occurrences] = ???
+  def combinations(occurrences: Occurrences): List[Occurrences] = {
+    def generate(p: (Char, Int)): Seq[(Char, Int)] = {
+      {
+        for {
+          integer <- 1 to p._2
+        } yield (p._1, integer)
+      }.toList
+    }
+
+    def combineList(list: List[(Char, Int)]): Set[List[(Char, Int)]] = {
+      if (list.isEmpty)
+        Set(List())
+      else {
+        {
+          for {
+            new_list <- generate(list.head)
+            rest <- combineList(list.tail)
+          } yield new_list :: rest
+        }.toSet
+      }
+    }
+
+    def combine(list: List[(Char, Int)]): Set[List[(Char, Int)]] = {
+      if (list.isEmpty)
+        Set(List())
+      else {
+        {
+          for {
+            slice <- 1 to list.length
+            new_list <- combineList(list take slice)
+          } yield new_list
+        }.toSet ++ {
+          for {
+            slice <- 1 to list.length
+            rest <- combineList(list drop slice)
+          } yield rest
+        }.toSet
+      }
+    }
+    combine(occurrences).toList
+  }
 
   /**
    * Subtracts occurrence list `y` from occurrence list `x`.
@@ -111,7 +150,17 @@ object Anagrams {
    *  Note: the resulting value is an occurrence - meaning it is sorted
    *  and has no zero-entries.
    */
-  def subtract(x: Occurrences, y: Occurrences): Occurrences = ???
+  def subtract(x: Occurrences, y: Occurrences): Occurrences = {
+    val myMap = y.toMap //> myMap  : scala.collection.immutable.Map[Char,Int] = Map(m -> 1, y -> 1)
+    def subs(elem: (Char, Int)): (Char, Int) = {
+      if (myMap.contains(elem._1)) {
+        val elem1 = myMap(elem._1)
+        (elem._1, (elem._2 - elem1))
+      } else
+        elem
+    } //> subs: (elem: (Char, Int))(Char, Int)
+    x.map(subs).filter((elem: (Char, Int)) => elem._2 > 0)
+  }
 
   /**
    * Returns a list of all anagram sentences of the given sentence.
@@ -154,6 +203,21 @@ object Anagrams {
    *
    *  Note: There is only one anagram of an empty sentence.
    */
-  def sentenceAnagrams(sentence: Sentence): List[Sentence] = ???
+  def sentenceAnagrams(sentence: Sentence): List[Sentence] = {
 
+    def subAnagrams(oc: Occurrences): List[Sentence] = {
+      if (oc.isEmpty)
+        List[Sentence](List[Word]())
+      else {
+        {
+          for {
+            c <- combinations(oc)
+            //rest <- subAnagrams(oc.tail)
+            sentence <- dictionaryByOccurrences.get(subtract(oc, c))            
+          } yield sentence
+        }
+      }
+    }
+    subAnagrams(sentenceOccurrences(sentence))
+  }
 }

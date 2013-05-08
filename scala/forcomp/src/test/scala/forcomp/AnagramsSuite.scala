@@ -49,6 +49,12 @@ class AnagramsSuite extends FunSuite {
     assert(subtract(lard, r) === lad)
   }
 
+  test("subtract: jimmy - my") {
+    val jimmy = List(('i',1), ('j',1), ('m',2), ('y',1))
+    val my = List(('m', 1), ('y',1))
+    val jimm = List(('i', 1), ('j', 1), ('m', 1))
+    assert(subtract(jimmy, my) === jimm)
+  }
 
 
   test("combinations: []") {
