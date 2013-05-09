@@ -108,35 +108,37 @@ object Anagrams {
 
     def combineList(list: List[(Char, Int)]): Set[List[(Char, Int)]] = {
       if (list.isEmpty)
-        Set(List())
+        Set(List[(Char, Int)]())   
       else {
         {
           for {
             new_list <- generate(list.head)
             rest <- combineList(list.tail)
           } yield new_list :: rest
-        }.toSet
+        }.toSet+List[(Char, Int)]()
       }
     }
 
     def combine(list: List[(Char, Int)]): Set[List[(Char, Int)]] = {
-      if (list.isEmpty)
-        Set(List())
-      else {
+      val new_list = combineList(list).toList.flatten
+      if (new_list.isEmpty) {
+        Set(List[(Char, Int)]())
+      } else {
         {
           for {
-            slice <- 1 to list.length
+            slice <- 1 to list.length                        
             new_list <- combineList(list take slice)
-          } yield new_list
-        }.toSet ++ {
-          for {
-            slice <- 1 to list.length
-            rest <- combineList(list drop slice)
-          } yield rest
+            rest_list <- combine(list drop slice)
+          } yield new_list++rest_list
         }.toSet
       }
+      /*for {
+		comb <- 0 to occurrences.length
+		lists <- new_list.combinations(comb)
+		} yield lists  
+      }.toSet*/
     }
-    combine(occurrences).toList
+    combine(occurrences).toList.sortWith((l1: List[(Char, Int)], l2: List[(Char, Int)]) => l1.length < l2.length).map((list: List[(Char, Int)]) => list.sortWith((elem1: (Char, Int), elem2: (Char, Int)) => elem1._1 < elem2._1))
   }
 
   /**
@@ -209,15 +211,17 @@ object Anagrams {
       if (oc.isEmpty)
         List[Sentence](List[Word]())
       else {
-        {
-          for {
-            c <- combinations(oc)
-            //rest <- subAnagrams(oc.tail)
-            sentence <- dictionaryByOccurrences.get(subtract(oc, c))            
-          } yield sentence
-        }
+        for {
+          c <- combinations(oc).filter((elem: Occurrences) => !elem.isEmpty)
+          //_ = println(c)
+          //gen3item <- subAnagrams(oc.tail)
+          word <- subAnagrams(subtract(oc, c))
+          gen2item <- dictionaryByOccurrences.get(c)
+          //_ = println(gen2item)
+
+        } yield gen2item ++ word
       }
     }
-    subAnagrams(sentenceOccurrences(sentence))
+    subAnagrams(sentenceOccurrences(sentence)).toList
   }
 }
